@@ -1,0 +1,2399 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Lanchonete FAP - Sistema</title>
+
+  <link rel="shortcut icon" href="faviconfap.png" type="image/x-icon">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        fontFamily: {
+          'sans': ['Poppins', 'system-ui', 'sans-serif'],
+        },
+        extend: {
+          colors: {
+            'navy': '#0d1b2a',
+            'navy-light': '#1b263b',
+            'navy-text': '#e0e1e9',
+            'success': '#10b981',
+            'warning': '#f59e0b',
+            'danger': '#ef4444',
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.3s ease-in-out',
+            'slide-in': 'slideIn 0.3s ease-out',
+            'pulse-slow': 'pulse 2s infinite',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            },
+            slideIn: {
+              '0%': { transform: 'translateY(-10px)', opacity: '0' },
+              '100%': { transform: 'translateY(0)', opacity: '1' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Aplica Poppins em todos os elementos */
+    * {
+      font-family: 'Poppins', sans-serif;
+    }
+
+    /* Classes de utilidade para o JS */
+    .view.hidden {
+      display: none;
+    }
+
+    .sub-view.hidden {
+      display: none;
+    }
+
+    /* Botão de Navegação Ativo */
+    .nav-btn.active {
+      background-color: white;
+      color: #0d1b2a;
+      font-weight: 600;
+    }
+
+    /* Abas de Cadastro Ativas */
+    .tab-btn.active {
+      border-bottom-color: #0d1b2a;
+      color: #0d1b2a;
+      font-weight: 600;
+    }
+
+    /* Animações personalizadas */
+    .fade-in {
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .slide-in {
+      animation: slideIn 0.3s ease-out;
+    }
+
+    /* Estilo para notificações */
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      max-width: 350px;
+    }
+
+    /* Loading spinner */
+    .spinner {
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top: 3px solid white;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-right: 8px;
+    }
+
+    .spinner-dark {
+      border: 3px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top: 3px solid #0d1b2a;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Estilo para cards com hover */
+    .card-hover {
+      transition: all 0.2s ease;
+    }
+
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Estilo para botões com loading */
+    .btn-loading {
+      pointer-events: none;
+      opacity: 0.7;
+    }
+
+    /* Melhorias de legibilidade */
+    body {
+      font-weight: 400;
+      line-height: 1.6;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-weight: 600;
+    }
+
+    .font-medium {
+      font-weight: 500;
+    }
+
+    .font-semibold {
+      font-weight: 600;
+    }
+
+    .font-bold {
+      font-weight: 700;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+
+  <div id="notification-container" class="notification"></div>
+
+  <div class="min-h-screen flex">
+
+    <aside class="w-64 bg-navy text-navy-text flex flex-col p-4">
+
+      <div class="h-20 flex items-center justify-center border-b border-navy-light bg-navy-dark">
+        <img src="Lanchonete unifap.png" alt="Lanchonete UNIFAP" class="h-16 object-contain">
+      </div>
+
+
+      <nav class="flex-1 space-y-2 mt-6">
+        <button data-view="dashboard" class="nav-btn active w-full text-left px-3 py-2 rounded hover:bg-navy-light transition-colors flex items-center">
+          <i class="fas fa-tachometer-alt mr-3 w-5 text-center"></i> Dashboard
+        </button>
+        <button data-view="caixa" class="nav-btn w-full text-left px-3 py-2 rounded hover:bg-navy-light transition-colors flex items-center">
+          <i class="fas fa-cash-register mr-3 w-5 text-center"></i> Caixa / Pedidos
+        </button>
+        <button data-view="produtos" class="nav-btn w-full text-left px-3 py-2 rounded hover:bg-navy-light transition-colors flex items-center">
+          <i class="fas fa-hamburger mr-3 w-5 text-center"></i> Produtos & Fichas
+        </button>
+        <button data-view="estoque" class="nav-btn w-full text-left px-3 py-2 rounded hover:bg-navy-light transition-colors flex items-center">
+          <i class="fas fa-boxes mr-3 w-5 text-center"></i> Estoque / Ingredientes
+        </button>
+        <button data-view="cadastros" class="nav-btn w-full text-left px-3 py-2 rounded hover:bg-navy-light transition-colors flex items-center">
+          <i class="fas fa-address-book mr-3 w-5 text-center"></i> Cadastros
+        </button>
+        <button data-view="relatorios" class="nav-btn w-full text-left px-3 py-2 rounded hover:bg-navy-light transition-colors flex items-center">
+          <i class="fas fa-chart-bar mr-3 w-5 text-center"></i> Relatórios
+        </button>
+      </nav>
+
+      <div class="mt-6 text-xs text-gray-500">
+        <p>Protótipo Frontend (v3)</p>
+        <p>Backend: PostgreSQL (RNF001)</p>
+      </div>
+    </aside>
+
+    <main class="flex-1 p-8 overflow-y-auto bg-white">
+
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h2 id="view-title" class="text-3xl font-bold text-gray-900">Dashboard</h2>
+          <p id="view-subtitle" class="text-sm text-gray-500">Visão geral do sistema Lanchonete FAP</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="btn-refresh" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center">
+            <i class="fas fa-sync-alt mr-2"></i> Atualizar Dados
+          </button>
+          <div id="last-update" class="text-xs text-gray-500"></div>
+        </div>
+      </div>
+
+      <section id="content-container">
+
+        <div id="view-dashboard" class="view">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white p-6 rounded-lg shadow card-hover border-l-4 border-blue-500">
+              <div class="flex justify-between items-start">
+                <div>
+                  <div class="text-sm font-medium text-gray-500">Funcionários Ativos</div>
+                  <div id="stat-funcionarios" class="text-4xl font-bold text-navy mt-2">0</div>
+                </div>
+                <div class="p-3 bg-blue-100 rounded-full">
+                  <i class="fas fa-users text-blue-500"></i>
+                </div>
+              </div>
+              <div class="mt-4 text-xs text-gray-500">
+                <i class="fas fa-clock mr-1"></i> Atualizado agora
+              </div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow card-hover border-l-4 border-green-500">
+              <div class="flex justify-between items-start">
+                <div>
+                  <div class="text-sm font-medium text-gray-500">Clientes Cadastrados</div>
+                  <div id="stat-clientes" class="text-4xl font-bold text-navy mt-2">0</div>
+                </div>
+                <div class="p-3 bg-green-100 rounded-full">
+                  <i class="fas fa-user-friends text-green-500"></i>
+                </div>
+              </div>
+              <div class="mt-4 text-xs text-gray-500">
+                <i class="fas fa-clock mr-1"></i> Atualizado agora
+              </div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow card-hover border-l-4 border-purple-500">
+              <div class="flex justify-between items-start">
+                <div>
+                  <div class="text-sm font-medium text-gray-500">Produtos no Cardápio</div>
+                  <div id="stat-produtos" class="text-4xl font-bold text-navy mt-2">0</div>
+                </div>
+                <div class="p-3 bg-purple-100 rounded-full">
+                  <i class="fas fa-hamburger text-purple-500"></i>
+                </div>
+              </div>
+              <div class="mt-4 text-xs text-gray-500">
+                <i class="fas fa-clock mr-1"></i> Atualizado agora
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+            <div class="bg-white border p-6 rounded-lg shadow-sm">
+              <h3 class="font-semibold text-lg mb-4 flex items-center">
+                <i class="fas fa-history mr-2 text-gray-500"></i> Últimos Pedidos
+              </h3>
+              <div id="ultimos-pedidos" class="space-y-3">
+                <div class="text-center py-4 text-gray-500">
+                  <i class="fas fa-shopping-cart text-3xl mb-2 opacity-50"></i>
+                  <p>Nenhum pedido registrado ainda.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white border p-6 rounded-lg shadow-sm">
+              <h3 class="font-semibold text-lg mb-4 flex items-center">
+                <i class="fas fa-chart-line mr-2 text-gray-500"></i> Estatísticas Rápidas
+              </h3>
+              <div id="quick-stats" class="space-y-4">
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-600">Pedidos Hoje</span>
+                  <span id="stat-pedidos-hoje" class="font-semibold">0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-600">Valor Total Hoje</span>
+                  <span id="stat-valor-hoje" class="font-semibold text-green-600">R$ 0,00</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-600">Ingredientes em Falta</span>
+                  <span id="stat-ingredientes-falta" class="font-semibold text-red-600">0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-600">Mesas Ocupadas</span>
+                  <span id="stat-mesas-ocupadas" class="font-semibold">0/0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="view-caixa" class="view hidden">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <div class="lg:col-span-2">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="font-semibold text-xl">Cardápio</h3>
+                <div class="flex items-center gap-2">
+                  <input id="filter-prod" placeholder="Buscar produto..." class="border rounded-lg px-3 py-2 text-sm w-64" />
+                  <button class="px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">
+                    <i class="fas fa-filter"></i>
+                  </button>
+                </div>
+              </div>
+              <div id="grid-produtos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-[60vh] overflow-y-auto p-2 bg-gray-50 rounded-lg">
+              </div>
+            </div>
+
+            <div class="bg-gray-50 p-6 rounded-lg shadow-sm">
+              <h3 class="font-semibold text-xl mb-4">Resumo do Pedido</h3>
+
+              <label class="text-sm font-medium">Funcionário (RF010)</label>
+              <select id="sel-funcionario" class="w-full border rounded-lg px-2 py-2 mb-3 bg-white"></select>
+
+              <label class="text-sm font-medium">Cliente (Opcional)</label>
+              <select id="sel-cliente" class="w-full border rounded-lg px-2 py-2 mb-3 bg-white">
+                <option value="">-- Selecione um cliente --</option>
+              </select>
+
+              <label class="text-sm font-medium">Mesa (Opcional)</label>
+              <select id="sel-mesa" class="w-full border rounded-lg px-2 py-2 mb-4 bg-white">
+                <option value="">-- Selecione uma mesa --</option>
+              </select>
+
+              <div id="cart-items" class="space-y-2 max-h-64 overflow-auto mb-4 p-2 border-t border-b">
+                <div class="text-center py-4 text-gray-500">
+                  <i class="fas fa-shopping-cart text-xl mb-2 opacity-50"></i>
+                  <p>Carrinho vazio</p>
+                </div>
+              </div>
+
+              <div class="border-t pt-4">
+                <div class="flex justify-between font-semibold text-lg mb-4">
+                  <div>Total</div>
+                  <div id="cart-total">R$ 0,00</div>
+                </div>
+                <button id="btn-register-order" class="w-full py-3 rounded-lg bg-navy text-white font-bold hover:bg-navy-light transition-colors">
+                  <i class="fas fa-check-circle mr-2"></i> Registrar Pedido (RF010)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="view-produtos" class="view hidden">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <div class="lg:col-span-2">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="font-semibold text-xl">Produtos (RF008)</h3>
+                <button id="btn-open-create-prod" class="px-4 py-2 rounded-lg bg-navy text-white text-sm font-medium hover:bg-navy-light transition-colors">
+                  <i class="fas fa-plus mr-2"></i> Novo Produto
+                </button>
+              </div>
+              <div id="lista-produtos" class="space-y-3">
+              </div>
+            </div>
+
+            <div class="bg-gray-50 p-6 rounded-lg shadow-sm">
+              <h3 class="font-semibold text-xl mb-4">Criar/Editar Produto</h3>
+              <form id="form-create-prod" class="space-y-3">
+                <input id="prod-id" type="hidden" />
+                <label class="text-sm font-medium">Nome</label>
+                <input id="prod-nome" required placeholder="Nome do produto" class="w-full border rounded-lg px-3 py-2" />
+
+                <label class="text-sm font-medium">Descrição</label>
+                <textarea id="prod-descricao" placeholder="Descrição do produto" class="w-full border rounded-lg px-3 py-2" rows="2"></textarea>
+
+                <label class="text-sm font-medium">Preço (R$)</label>
+                <input id="prod-preco" type="number" step="0.01" required placeholder="15.50" class="w-full border rounded-lg px-3 py-2" />
+
+                <label class="text-sm font-medium">Categoria (RF005)</label>
+                <select id="prod-categoria" class="w-full border rounded-lg px-3 py-2 bg-white">
+                  <option value="">-- Categoria --</option>
+                </select>
+
+                <div class="flex gap-2 pt-2">
+                  <button type="submit" class="flex-1 py-3 rounded-lg bg-navy text-white font-bold hover:bg-navy-light transition-colors">
+                    <i class="fas fa-save mr-2"></i> Salvar Produto
+                  </button>
+                  <button type="button" id="btn-cancel-prod" class="px-4 py-3 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div class="mt-8 bg-white border p-6 rounded-lg shadow-sm">
+            <h3 class="font-semibold text-xl mb-4">Fichas Técnicas (RF009)</h3>
+            <form id="form-create-ficha" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-4 p-4 bg-gray-50 rounded-lg">
+              <div class="md:col-span-1">
+                <label class="text-sm font-medium">Produto</label>
+                <select id="ficha-produto" class="w-full border rounded-lg px-3 py-2 bg-white"></select>
+              </div>
+              <div class="md:col-span-1">
+                <label class="text-sm font-medium">Ingrediente</label>
+                <select id="ficha-ingrediente" class="w-full border rounded-lg px-3 py-2 bg-white"></select>
+              </div>
+              <div class="md:col-span-1">
+                <label class="text-sm font-medium">Quantidade</label>
+                <input id="ficha-qt" type="number" min="0.001" step="0.001" placeholder="Qtd" class="w-full border rounded-lg px-3 py-2" />
+              </div>
+              <button type="button" id="btn-add-ficha-item" class="md:col-span-1 py-2 rounded-lg bg-navy text-white hover:bg-navy-light transition-colors">
+                <i class="fas fa-plus mr-2"></i> Adicionar
+              </button>
+            </form>
+            <div id="lista-fichas" class="space-y-3">
+            </div>
+          </div>
+        </div>
+
+        <div id="view-estoque" class="view hidden">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <div class="lg:col-span-2">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="font-semibold text-xl">Ingredientes no Estoque (RF007)</h3>
+                <button class="px-4 py-2 bg-navy text-white rounded-lg hover:bg-navy-light transition-colors text-sm">
+                  <i class="fas fa-file-export mr-2"></i> Exportar
+                </button>
+              </div>
+              <div id="lista-ingredientes" class="space-y-3">
+              </div>
+            </div>
+
+            <div class="bg-gray-50 p-6 rounded-lg shadow-sm">
+              <h3 id="form-ing-title" class="font-semibold text-xl mb-4">Novo Ingrediente</h3>
+              <form id="form-create-ingrediente" class="space-y-3">
+                <input id="ing-id" type="hidden" />
+                <label class="text-sm font-medium">Nome</label>
+                <input id="ing-nome" required placeholder="Ex: Pão Brioche" class="w-full border rounded-lg px-3 py-2" />
+
+                <label class="text-sm font-medium">Quantidade</label>
+                <input id="ing-quant" type="number" step="0.001" required placeholder="50" class="w-full border rounded-lg px-3 py-2" />
+
+                <label class="text-sm font-medium">Unidade de Medida</label>
+                <input id="ing-unidade" required placeholder="un, kg, g, L" class="w-full border rounded-lg px-3 py-2" />
+
+                <label class="text-sm font-medium">Quantidade Mínima</label>
+                <input id="ing-quant-min" type="number" step="0.001" placeholder="5" class="w-full border rounded-lg px-3 py-2" />
+
+                <label class="text-sm font-medium">Fornecedor (RF006)</label>
+                <select id="ing-fornecedor" class="w-full border rounded-lg px-3 py-2 bg-white">
+                  <option value="">-- Selecione um fornecedor --</option>
+                </select>
+
+                <div class="flex gap-2 pt-2">
+                  <button type="submit" class="flex-1 py-3 rounded-lg bg-navy text-white font-bold hover:bg-navy-light transition-colors">
+                    <i class="fas fa-save mr-2"></i> Salvar
+                  </button>
+                  <button type="button" id="btn-cancel-ing" class="px-4 py-3 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div id="view-cadastros" class="view hidden">
+
+          <div class="border-b border-gray-200 mb-6">
+            <nav class="flex -mb-px space-x-6 overflow-x-auto">
+              <button data-tab="funcionarios" class="tab-btn active py-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">
+                <i class="fas fa-users mr-2"></i> Funcionários (RF001)
+              </button>
+              <button data-tab="clientes" class="tab-btn py-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">
+                <i class="fas fa-user-friends mr-2"></i> Clientes (RF003)
+              </button>
+              <button data-tab="cargos" class="tab-btn py-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">
+                <i class="fas fa-user-tie mr-2"></i> Cargos (RF002)
+              </button>
+              <button data-tab="mesas" class="tab-btn py-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">
+                <i class="fas fa-chair mr-2"></i> Mesas (RF004)
+              </button>
+              <button data-tab="fornecedores" class="tab-btn py-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">
+                <i class="fas fa-truck mr-2"></i> Fornecedores (RF006)
+              </button>
+              <button data-tab="categorias" class="tab-btn py-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">
+                <i class="fas fa-tags mr-2"></i> Categorias (RF005)
+              </button>
+            </nav>
+          </div>
+
+          <div id="cadastros-content">
+
+            <div id="tab-funcionarios" class="sub-view grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div class="lg:col-span-2">
+                <h3 class="font-semibold text-xl mb-4">Lista de Funcionários</h3>
+                <div id="lista-funcionarios" class="space-y-3">
+                </div>
+              </div>
+              <div class="bg-gray-50 p-6 rounded-lg shadow-sm">
+                <h3 id="form-func-title" class="font-semibold text-xl mb-4">Novo Funcionário</h3>
+                <form id="form-create-func" class="space-y-3">
+                  <input id="func-id" type="hidden" />
+                  <label class="text-sm font-medium">Nome</label>
+                  <input id="func-nome" required placeholder="Nome completo" class="w-full border rounded-lg px-3 py-2" />
+                  <label class="text-sm font-medium">CPF</label>
+                  <input id="func-cpf" required placeholder="000.000.000-00" class="w-full border rounded-lg px-3 py-2" />
+                  <label class="text-sm font-medium">Cargo</label>
+                  <select id="func-cargo" required class="w-full border rounded-lg px-3 py-2 bg-white"></select>
+
+                  <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 py-3 rounded-lg bg-navy text-white font-bold hover:bg-navy-light transition-colors">
+                      <i class="fas fa-save mr-2"></i> Salvar
+                    </button>
+                    <button type="button" id="btn-cancel-func" class="px-4 py-3 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div id="tab-clientes" class="sub-view hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div class="lg:col-span-2">
+                <h3 class="font-semibold text-xl mb-4">Lista de Clientes</h3>
+                <div id="lista-clientes" class="space-y-3">
+                </div>
+              </div>
+              <div class="bg-gray-50 p-6 rounded-lg shadow-sm">
+                <h3 id="form-cli-title" class="font-semibold text-xl mb-4">Novo Cliente</h3>
+                <form id="form-create-cliente" class="space-y-3">
+                  <input id="cli-id" type="hidden" />
+                  <label class="text-sm font-medium">Nome</label>
+                  <input id="cli-nome" required placeholder="Nome (para delivery)" class="w-full border rounded-lg px-3 py-2" />
+                  <label class="text-sm font-medium">Telefone</label>
+                  <input id="cli-tel" placeholder="(88) 99999-9999" class="w-full border rounded-lg px-3 py-2" />
+                  <label class="text-sm font-medium">Endereço</label>
+                  <input id="cli-end" placeholder="Rua, Número, Bairro" class="w-full border rounded-lg px-3 py-2" />
+
+                  <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 py-3 rounded-lg bg-navy text-white font-bold hover:bg-navy-light transition-colors">
+                      <i class="fas fa-save mr-2"></i> Salvar
+                    </button>
+                    <button type="button" id="btn-cancel-cli" class="px-4 py-3 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div id="tab-cargos" class="sub-view hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div class="lg:col-span-2">
+                <h3 class="font-semibold text-xl mb-4">Lista de Cargos</h3>
+                <div id="lista-cargos" class="space-y-3">
+                </div>
+              </div>
+              <div class="bg-gray-50 p-6 rounded-lg shadow-sm">
+                <h3 id="form-cargo-title" class="font-semibold text-xl mb-4">Novo Cargo</h3>
+                <form id="form-create-cargo" class="space-y-3">
+                  <input id="cargo-id" type="hidden" />
+                  <label class="text-sm font-medium">Nome do Cargo</label>
+                  <input id="cargo-nome" required placeholder="Ex: Gerente" class="w-full border rounded-lg px-3 py-2" />
+                  <label class="text-sm font-medium">Salário Base (R$)</label>
+                  <input id="cargo-salario" type="number" step="0.01" placeholder="1500.00" class="w-full border rounded-lg px-3 py-2" />
+
+                  <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 py-3 rounded-lg bg-navy text-white font-bold hover:bg-navy-light transition-colors">
+                      <i class="fas fa-save mr-2"></i> Salvar
+                    </button>
+                    <button type="button" id="btn-cancel-cargo" class="px-4 py-3 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div id="tab-mesas" class="sub-view hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div class="lg:col-span-2">
+                <h3 class="font-semibold text-xl mb-4">Lista de Mesas</h3>
+                <div id="lista-mesas" class="space-y-3">
+                </div>
+              </div>
+              <div class="bg-gray-50 p-6 rounded-lg shadow-sm">
+                <h3 id="form-mesa-title" class="font-semibold text-xl mb-4">Nova Mesa</h3>
+                <form id="form-create-mesa" class="space-y-3">
+                  <input id="mesa-id" type="hidden" />
+                  <label class="text-sm font-medium">Número da Mesa</label>
+                  <input id="mesa-numero" type="number" required placeholder="1" class="w-full border rounded-lg px-3 py-2" />
+                  <label class="text-sm font-medium">Status</label>
+                  <select id="mesa-status" required class="w-full border rounded-lg px-3 py-2 bg-white">
+                    <option value="Livre">Livre</option>
+                    <option value="Ocupada">Ocupada</option>
+                    <option value="Reservada">Reservada</option>
+                  </select>
+
+                  <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 py-3 rounded-lg bg-navy text-white font-bold hover:bg-navy-light transition-colors">
+                      <i class="fas fa-save mr-2"></i> Salvar
+                    </button>
+                    <button type="button" id="btn-cancel-mesa" class="px-4 py-3 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div id="tab-fornecedores" class="sub-view hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div class="lg:col-span-2">
+                <h3 class="font-semibold text-xl mb-4">Lista de Fornecedores</h3>
+                <div id="lista-fornecedores" class="space-y-3">
+                </div>
+              </div>
+              <div class="bg-gray-50 p-6 rounded-lg shadow-sm">
+                <h3 id="form-forn-title" class="font-semibold text-xl mb-4">Novo Fornecedor</h3>
+                <form id="form-create-fornecedor" class="space-y-3">
+                  <input id="forn-id" type="hidden" />
+                  <label class="text-sm font-medium">Nome Fantasia</label>
+                  <input id="forn-nome" required placeholder="Distribuidora Principal" class="w-full border rounded-lg px-3 py-2" />
+                  <label class="text-sm font-medium">CNPJ</label>
+                  <input id="forn-cnpj" placeholder="00.000.000/0001-00" class="w-full border rounded-lg px-3 py-2" />
+
+                  <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 py-3 rounded-lg bg-navy text-white font-bold hover:bg-navy-light transition-colors">
+                      <i class="fas fa-save mr-2"></i> Salvar
+                    </button>
+                    <button type="button" id="btn-cancel-forn" class="px-4 py-3 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div id="tab-categorias" class="sub-view hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div class="lg:col-span-2">
+                <h3 class="font-semibold text-xl mb-4">Lista de Categorias</h3>
+                <div id="lista-categorias" class="space-y-3">
+                </div>
+              </div>
+              <div class="bg-gray-50 p-6 rounded-lg shadow-sm">
+                <h3 id="form-cat-title" class_D="font-semibold text-xl mb-4">Nova Categoria</h3>
+                <form id="form-create-categoria" class="space-y-3">
+                  <input id="cat-id" type="hidden" />
+                  <label class="text-sm font-medium">Nome da Categoria</label>
+                  <input id="cat-nome" required placeholder="Ex: Bebidas" class="w-full border rounded-lg px-3 py-2" />
+
+                  <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 py-3 rounded-lg bg-navy text-white font-bold hover:bg-navy-light transition-colors">
+                      <i class="fas fa-save mr-2"></i> Salvar
+                    </button>
+                    <button type="button" id="btn-cancel-cat" class="px-4 py-3 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div id="view-relatorios" class="view hidden">
+          <div class="bg-gray-50 p-8 rounded-lg shadow-sm">
+            <h3 class="font-semibold text-xl mb-4">Relatórios (RF012, RF013, RF014)</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+              <div id="btn-report-clientes" class="bg-white p-4 rounded-lg border cursor-pointer card-hover">
+                <div class="flex items-center">
+                  <div class="p-3 bg-blue-100 rounded-lg mr-4">
+                    <i class="fas fa-shopping-cart text-blue-500"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-semibold">Pedidos por Cliente</h4>
+                    <p class="text-sm text-gray-500">RF012</p>
+                  </div>
+                </div>
+              </div>
+              <div id="btn-report-produtos" class="bg-white p-4 rounded-lg border cursor-pointer card-hover">
+                <div class="flex items-center">
+                  <div class="p-3 bg-green-100 rounded-lg mr-4">
+                    <i class="fas fa-utensils text-green-500"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-semibold">Ingredientes por Produto</h4>
+                    <p class="text-sm text-gray-500">RF013</p>
+                  </div>
+                </div>
+              </div>
+              <div id="btn-report-funcionarios" class="bg-white p-4 rounded-lg border cursor-pointer card-hover">
+                <div class="flex items-center">
+                  <div class="p-3 bg-purple-100 rounded-lg mr-4">
+                    <i class="fas fa-users text-purple-500"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-semibold">Lista de Funcionários</h4>
+                    <p class="text-sm text-gray-500">RF014</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="relatorio-area" class="mt-4 bg-white p-6 rounded-lg border">
+              <p class="text-sm text-gray-600 space-y-2">Selecione um relatório para visualizar os dados.</p>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 slide-in">
+      <h3 id="confirm-title" class="text-lg font-bold mb-2">Confirmar ação</h3>
+      <p id="confirm-message" class="text-gray-600 mb-6">Tem certeza que deseja realizar esta ação?</p>
+      <div class="flex justify-end space-x-3">
+        <button id="confirm-cancel" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded transition-colors">Cancelar</button>
+        <button id="confirm-ok" class="px-4 py-2 bg-danger text-white rounded hover:bg-red-700 transition-colors">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* =========================
+     * Estado local / fallback (localStorage)
+     * ========================= */
+    const LS_KEYS = {
+      cargos: 'fap_cargos',
+      funcionarios: 'fap_funcionarios',
+      clientes: 'fap_clientes',
+      mesas: 'fap_mesas',
+      categorias: 'fap_categorias',
+      fornecedores: 'fap_fornecedores',
+      ingredientes: 'fap_ingredientes',
+      produtos: 'fap_produtos',
+      fichas: 'fap_fichas',
+      pedidos: 'fap_pedidos'
+    };
+
+    // Sistema de Notificações
+    function showNotification(message, type = 'info', duration = 5000) {
+      const container = document.getElementById('notification-container');
+      const notification = document.createElement('div');
+
+      const bgColors = {
+        success: 'bg-success',
+        warning: 'bg-warning',
+        danger: 'bg-danger',
+        info: 'bg-navy'
+      };
+
+      const icons = {
+        success: 'fa-check-circle',
+        warning: 'fa-exclamation-triangle',
+        danger: 'fa-exclamation-circle',
+        info: 'fa-info-circle'
+      };
+
+      notification.className = `p-4 rounded-lg shadow-lg text-white mb-3 fade-in ${bgColors[type]}`;
+      notification.innerHTML = `
+        <div class="flex items-center">
+          <i class="fas ${icons[type]} mr-3"></i>
+          <div class="flex-1">${message}</div>
+          <button class="ml-2 text-white hover:text-gray-200">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `;
+
+      container.appendChild(notification);
+
+      // Remove a notificação após o tempo determinado
+      const timer = setTimeout(() => {
+        if (notification.parentNode) {
+          notification.style.opacity = '0';
+          notification.style.transition = 'opacity 0.3s';
+          setTimeout(() => {
+            if (notification.parentNode) {
+              notification.parentNode.removeChild(notification);
+            }
+          }, 300);
+        }
+      }, duration);
+
+      // Botão para fechar manualmente
+      notification.querySelector('button').addEventListener('click', () => {
+        clearTimeout(timer); // Limpa o timer se fechar manualmente
+        if (notification.parentNode) {
+          notification.style.opacity = '0';
+          notification.style.transition = 'opacity 0.3s';
+          setTimeout(() => {
+            if (notification.parentNode) {
+              notification.parentNode.removeChild(notification);
+            }
+          }, 300);
+        }
+      });
+    }
+
+    // Modal de confirmação
+    function confirmAction(title, message) {
+      return new Promise((resolve) => {
+        const modal = document.getElementById('confirm-modal');
+        const titleEl = document.getElementById('confirm-title');
+        const messageEl = document.getElementById('confirm-message');
+        const cancelBtn = document.getElementById('confirm-cancel');
+        const okBtn = document.getElementById('confirm-ok');
+
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+        modal.classList.remove('hidden');
+
+        const cleanUp = (result) => {
+          modal.classList.add('hidden');
+          // É crucial remover os event listeners para não acumulá-los
+          cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+          okBtn.replaceWith(okBtn.cloneNode(true));
+          resolve(result);
+        };
+
+        cancelBtn.onclick = () => cleanUp(false);
+        okBtn.onclick = () => cleanUp(true);
+      });
+    }
+
+
+    // Funções utilitárias melhoradas
+    function lsGet(key) {
+      const v = localStorage.getItem(key);
+      return v ? JSON.parse(v) : [];
+    }
+
+    function lsSet(key, data) {
+      localStorage.setItem(key, JSON.stringify(data));
+      // Atualiza timestamp da última modificação
+      const timestamps = lsGet('fap_timestamps') || {};
+      timestamps[key] = new Date().toISOString();
+      localStorage.setItem('fap_timestamps', JSON.stringify(timestamps));
+    }
+
+    function nextId(arr) {
+      return arr.length ? Math.max(...arr.map(x => x.id || 0)) + 1 : 1;
+    }
+
+    // API helper melhorado
+    async function apiGet(resource) {
+      // Simula um delay de rede
+      await new Promise(resolve => setTimeout(resolve, 300));
+      console.log(`%cAPI_GET (mock): /api/${resource}`, 'color: blue');
+      return lsGet(LS_KEYS[resource] || resource);
+    }
+
+    async function apiPost(resource, payload) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log(`%cAPI_POST (mock): /api/${resource}`, 'color: green', payload);
+      const key = LS_KEYS[resource] || resource;
+      const arr = lsGet(key);
+      const id = nextId(arr);
+      const obj = { id, ...payload, criadoEm: new Date().toISOString() };
+      arr.unshift(obj);
+      lsSet(key, arr);
+      return obj;
+    }
+
+    async function apiPut(resource, id, payload) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log(`%cAPI_PUT (mock): /api/${resource}/${id}`, 'color: orange', payload);
+      const key = LS_KEYS[resource] || resource;
+      const arr = lsGet(key);
+      const index = arr.findIndex(item => item.id === id);
+      if (index !== -1) {
+        arr[index] = { ...arr[index], ...payload, atualizadoEm: new Date().toISOString() };
+        lsSet(key, arr);
+        return arr[index];
+      }
+      return null;
+    }
+
+    async function apiDelete(resource, id) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log(`%cAPI_DELETE (mock): /api/${resource}/${id}`, 'color: red');
+      const key = LS_KEYS[resource] || resource;
+      const arr = lsGet(key);
+      const filtered = arr.filter(item => item.id !== id);
+      lsSet(key, filtered);
+      return { success: true };
+    }
+
+    // Dados de exemplo melhorados
+    function seedIfEmpty() {
+      if (!lsGet(LS_KEYS.categorias).length) {
+        lsSet(LS_KEYS.categorias, [
+          { id: 1, nome: 'Lanches' },
+          { id: 2, nome: 'Bebidas' },
+          { id: 3, nome: 'Sobremesas' },
+          { id: 4, nome: 'Acompanhamentos' }
+        ]);
+      }
+
+      if (!lsGet(LS_KEYS.cargos).length) {
+        lsSet(LS_KEYS.cargos, [
+          { id: 1, nome: 'Gerente', salario_base: 3000 },
+          { id: 2, nome: 'Caixa', salario_base: 1500 },
+          { id: 3, nome: 'Cozinheiro', salario_base: 2000 }
+        ]);
+      }
+
+      if (!lsGet(LS_KEYS.funcionarios).length) {
+        lsSet(LS_KEYS.funcionarios, [
+          { id: 1, nome: 'Maria Cristina', cpf: '000.000.000-00', id_cargo: 1 },
+          { id: 2, nome: 'Roberto Firmino', cpf: '111.111.111-11', id_cargo: 2 }
+        ]);
+      }
+
+      if (!lsGet(LS_KEYS.clientes).length) {
+        lsSet(LS_KEYS.clientes, [
+          { id: 1, nome: 'Cliente Balcão', telefone: 'N/A', endereco: 'N/A' },
+          { id: 2, nome: 'João Silva', telefone: '(11) 99999-9999', endereco: 'Rua A, 123' }
+        ]);
+      }
+
+      if (!lsGet(LS_KEYS.mesas).length) {
+        lsSet(LS_KEYS.mesas, [
+          { id: 1, numero: 1, status: 'Livre' },
+          { id: 2, numero: 2, status: 'Ocupada' },
+          { id: 3, numero: 3, status: 'Livre' }
+        ]);
+      }
+
+      if (!lsGet(LS_KEYS.fornecedores).length) {
+        lsSet(LS_KEYS.fornecedores, [
+          { id: 1, nome: 'Fornecedor Principal', cnpj: '12.345.678/0001-90' },
+          { id: 2, nome: 'Distribuidora de Bebidas', cnpj: '98.765.432/0001-10' }
+        ]);
+      }
+
+      if (!lsGet(LS_KEYS.ingredientes).length) {
+        lsSet(LS_KEYS.ingredientes, [
+          { id: 1, nome: 'Pão Brioche', quantidade: 50, unidade: 'un', quantidade_minima: 10, fornecedor_id: 1 },
+          { id: 2, nome: 'Carne 150g', quantidade: 30, unidade: 'un', quantidade_minima: 15, fornecedor_id: 1 },
+          { id: 3, nome: 'Queijo Cheddar', quantidade: 5, unidade: 'kg', quantidade_minima: 2, fornecedor_id: 1 },
+          { id: 4, nome: 'Refrigerante', quantidade: 100, unidade: 'un', quantidade_minima: 20, fornecedor_id: 2 }
+        ]);
+      }
+
+      if (!lsGet(LS_KEYS.produtos).length) {
+        lsSet(LS_KEYS.produtos, [
+          {
+            id: 1,
+            nome: 'X-FAP (O Brabo)',
+            descricao: 'Hambúrguer artesanal com queijo cheddar',
+            preco: 22.50,
+            categoria_id: 1,
+            categoriaNome: 'Lanches'
+          },
+          {
+            id: 2,
+            nome: 'Refrigerante Lata',
+            descricao: 'Lata 350ml - diversos sabores',
+            preco: 6.00,
+            categoria_id: 2,
+            categoriaNome: 'Bebidas'
+          },
+          {
+            id: 3,
+            nome: 'Batata Frita',
+            descricao: 'Porção de batata frita crocante',
+            preco: 12.00,
+            categoria_id: 4,
+            categoriaNome: 'Acompanhamentos'
+          }
+        ]);
+      }
+
+      if (!lsGet(LS_KEYS.fichas).length) {
+        lsSet(LS_KEYS.fichas, [
+          {
+            id: 1,
+            produto_id: 1,
+            produtoNome: 'X-FAP (O Brabo)',
+            ingredientes: [
+              { ingredienteId: 1, nome: 'Pão Brioche', quantidade: 1, unidade: 'un' },
+              { ingredienteId: 2, nome: 'Carne 150g', quantidade: 1, unidade: 'un' },
+              { ingredienteId: 3, nome: 'Queijo Cheddar', quantidade: 0.05, unidade: 'kg' }
+            ]
+          }
+        ]);
+      }
+
+      // Adiciona alguns pedidos de exemplo
+      if (!lsGet(LS_KEYS.pedidos).length) {
+        const hoje = new Date();
+        const ontem = new Date(hoje);
+        ontem.setDate(ontem.getDate() - 1);
+
+        lsSet(LS_KEYS.pedidos, [
+          {
+            id: 1,
+            clienteId: 1,
+            funcionarioId: 2,
+            mesaId: null,
+            status: 'finalizado',
+            itens: [
+              { produtoId: 1, quantidade: 2, preco_unitario: 22.50, nome: 'X-FAP (O Brabo)' },
+              { produtoId: 2, quantidade: 1, preco_unitario: 6.00, nome: 'Refrigerante Lata' }
+            ],
+            criadoEm: hoje.toISOString(),
+            total: 51.00
+          },
+          {
+            id: 2,
+            clienteId: 2,
+            funcionarioId: 2,
+            mesaId: 2,
+            status: 'finalizado',
+            itens: [
+              { produtoId: 1, quantidade: 1, preco_unitario: 22.50, nome: 'X-FAP (O Brabo)' },
+              { produtoId: 3, quantidade: 1, preco_unitario: 12.00, nome: 'Batata Frita' }
+            ],
+            criadoEm: ontem.toISOString(),
+            total: 34.50
+          }
+        ]);
+      }
+    }
+
+    /* ===============================
+     * Controle de Navegação (Views e Tabs)
+     * =============================== */
+    const allViews = document.querySelectorAll('.view');
+    const allNavButtons = document.querySelectorAll('.nav-btn');
+    const viewTitle = document.getElementById('view-title');
+    const viewSubtitle = document.getElementById('view-subtitle');
+
+    // Função helper para mostrar spinner de loading
+    function showLoading(container) {
+      container.innerHTML = `
+        <div class="text-center py-8">
+          <div class="spinner-dark mx-auto mb-2"></div>
+          <div class="text-sm text-gray-500">Carregando dados...</div>
+        </div>
+      `;
+    }
+
+    // Função helper para mostrar placeholder vazio
+    function showEmpty(container, icon, message) {
+      container.innerHTML = `
+        <div class="text-center py-8 text-gray-500">
+          <i class="fas ${icon} text-3xl mb-2 opacity-50"></i>
+          <p>${message}</p>
+        </div>
+      `;
+    }
+
+    function showView(viewName) {
+      allViews.forEach(v => {
+        if (v.id === 'view-' + viewName) {
+          v.classList.remove('hidden');
+          // Adiciona animação de entrada
+          v.classList.add('fade-in');
+        } else {
+          v.classList.add('hidden');
+          v.classList.remove('fade-in');
+        }
+      });
+
+      // Atualiza título e subtítulo
+      const titles = {
+        dashboard: { main: 'Dashboard', sub: 'Visão geral do sistema Lanchonete FAP' },
+        caixa: { main: 'Caixa / Registrar Pedido', sub: 'Registre novos pedidos e gerencie vendas' },
+        produtos: { main: 'Produtos & Fichas Técnicas', sub: 'Gerencie cardápio e composição dos produtos' },
+        estoque: { main: 'Estoque / Ingredientes', sub: 'Controle de ingredientes e insumos' },
+        cadastros: { main: 'Cadastros Gerais', sub: 'Gerencie funcionários, clientes, mesas e mais' },
+        relatorios: { main: 'Relatórios', sub: 'Relatórios e análises do sistema' }
+      };
+
+      const titleInfo = titles[viewName] || { main: viewName, sub: '' };
+      viewTitle.innerText = titleInfo.main;
+      viewSubtitle.innerText = titleInfo.sub;
+
+      // Atualiza botão ativo
+      allNavButtons.forEach(btn => {
+        if (btn.dataset.view === viewName) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      // Atualiza os dados da view que está sendo aberta
+      refreshAll();
+    }
+
+    // Adiciona evento de clique nos botões da Sidebar
+    allNavButtons.forEach(btn => {
+      btn.addEventListener('click', () => showView(btn.dataset.view));
+    });
+
+    // Botão de Refresh Global
+    document.getElementById('btn-refresh').addEventListener('click', () => {
+      const btn = document.getElementById('btn-refresh');
+      const originalText = btn.innerHTML;
+
+      // Adiciona efeito de loading
+      btn.classList.add('btn-loading');
+      btn.innerHTML = '<div class="spinner-dark" style="border-top-color: #0d1b2a; width: 16px; height: 16px; margin-right: 8px;"></div> Atualizando...';
+
+      refreshAll().then(() => {
+        setTimeout(() => {
+          btn.classList.remove('btn-loading');
+          btn.innerHTML = originalText;
+          showNotification('Dados atualizados com sucesso!', 'success');
+        }, 500);
+      });
+    });
+
+    // Controle das ABAS (TABS) da tela de Cadastros
+    const allTabButtons = document.querySelectorAll('.tab-btn');
+    const allSubViews = document.querySelectorAll('.sub-view');
+
+    function showCadastroTab(tabName) {
+      allSubViews.forEach(sv => {
+        if (sv.id === 'tab-' + tabName) {
+          sv.classList.remove('hidden');
+          sv.classList.add('fade-in');
+        } else {
+          sv.classList.add('hidden');
+          sv.classList.remove('fade-in');
+        }
+      });
+
+      allTabButtons.forEach(btn => {
+        if (btn.dataset.tab === tabName) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    }
+
+    allTabButtons.forEach(btn => {
+      btn.addEventListener('click', () => showCadastroTab(btn.dataset.tab));
+    });
+
+    /* ===============================
+     * Lógica do Caixa (RF010, RF011) - MELHORADA
+     * =============================== */
+    let cart = [];
+
+    function addToCart(produto) {
+      const found = cart.find(i => i.produtoId === produto.id);
+      if (found) {
+        found.quantidade++;
+        showNotification(`Quantidade de ${produto.nome} aumentada para ${found.quantidade}`, 'info', 2000);
+      } else {
+        cart.push({
+          produtoId: produto.id,
+          nome: produto.nome,
+          quantidade: 1,
+          preco_unitario: Number(produto.preco)
+        });
+        showNotification(`${produto.nome} adicionado ao pedido`, 'success', 2000);
+      }
+      renderCart();
+    }
+
+    function removeFromCart(produtoId) {
+      const item = cart.find(i => i.produtoId === produtoId);
+      cart = cart.filter(i => i.produtoId !== produtoId);
+      if (item) {
+        showNotification(`${item.nome} removido do pedido`, 'warning', 2000);
+      }
+      renderCart();
+    }
+
+    function changeQty(produtoId, qt) {
+      if (qt <= 0) {
+        removeFromCart(produtoId);
+      } else {
+        const it = cart.find(i => i.produtoId === produtoId);
+        if (it) {
+          it.quantidade = qt;
+          showNotification(`Quantidade de ${it.nome} alterada para ${qt}`, 'info', 2000);
+        }
+      }
+      renderCart();
+    }
+
+    function renderCart() {
+      const container = document.getElementById('cart-items');
+      container.innerHTML = '';
+
+      if (!cart.length) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-gray-500">
+            <i class="fas fa-shopping-cart text-3xl mb-2 opacity-50"></i>
+            <p>Carrinho vazio</p>
+            <p class="text-xs mt-1">Adicione produtos do cardápio</p>
+          </div>
+        `;
+        document.getElementById('cart-total').innerText = 'R$ 0,00';
+        return;
+      }
+
+      cart.forEach(it => {
+        const div = document.createElement('div');
+        div.className = 'flex justify-between items-center p-3 border bg-white rounded-lg card-hover';
+        div.innerHTML = `
+          <div class="flex-1">
+            <div class="font-medium text-sm">${it.nome}</div>
+            <div class="text-xs text-gray-500">R$ ${Number(it.preco_unitario).toFixed(2).replace('.', ',')}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="qty-minus px-2 py-1 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200" data-id="${it.produtoId}">
+              <i class="fas fa-minus text-xs"></i>
+            </button>
+            <input type="number" min="1" value="${it.quantidade}" class="w-12 border rounded-md px-2 py-1 text-sm text-center" data-id="${it.produtoId}" />
+            <button class="qty-plus px-2 py-1 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200" data-id="${it.produtoId}">
+              <i class="fas fa-plus text-xs"></i>
+            </button>
+            <button data-rm="${it.produtoId}" class="px-2 py-1 rounded-md bg-red-100 text-red-700 text-xs font-bold hover:bg-red-200">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      // Adiciona eventos
+      container.querySelectorAll('input[type=number]').forEach(inp => {
+        inp.addEventListener('change', e => {
+          const id = Number(e.target.dataset.id);
+          const qt = Number(e.target.value) || 0;
+          changeQty(id, qt);
+        });
+      });
+
+      container.querySelectorAll('.qty-minus').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const id = Number(e.target.closest('button').dataset.id);
+          const item = cart.find(i => i.produtoId === id);
+          if (item) changeQty(id, item.quantidade - 1);
+        });
+      });
+
+      container.querySelectorAll('.qty-plus').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const id = Number(e.target.closest('button').dataset.id);
+          const item = cart.find(i => i.produtoId === id);
+          if (item) changeQty(id, item.quantidade + 1);
+        });
+      });
+
+      container.querySelectorAll('button[data-rm]').forEach(b => {
+        b.addEventListener('click', e => removeFromCart(Number(e.target.closest('button').dataset.rm)));
+      });
+
+      const total = cart.reduce((s, i) => s + i.preco_unitario * i.quantidade, 0);
+      document.getElementById('cart-total').innerText = 'R$ ' + total.toFixed(2).replace('.', ',');
+    }
+
+    async function registerOrder() {
+      const funcionarioId = Number(document.getElementById('sel-funcionario').value) || null;
+      if (!funcionarioId) {
+        showNotification('Selecione o funcionário responsável (RF010).', 'warning');
+        return;
+      }
+
+      if (!cart.length) {
+        showNotification('Adicione itens ao pedido (RF011).', 'warning');
+        return;
+      }
+
+      const btn = document.getElementById('btn-register-order');
+      const originalText = btn.innerHTML;
+
+      // Adiciona efeito de loading
+      btn.classList.add('btn-loading');
+      btn.innerHTML = '<div class="spinner"></div> Processando...';
+
+      const payload = {
+        clienteId: Number(document.getElementById('sel-cliente').value) || null,
+        funcionarioId,
+        mesaId: Number(document.getElementById('sel-mesa').value) || null,
+        itens: cart.map(i => ({
+          produtoId: i.produtoId,
+          quantidade: i.quantidade,
+          preco_unitario: i.preco_unitario,
+          nome: i.nome // Adiciona o nome para facilitar a renderização
+        })),
+        status: 'pendente',
+        criadoEm: new Date().toISOString(),
+        total: cart.reduce((s, i) => s + i.preco_unitario * i.quantidade, 0)
+      };
+
+      try {
+        const res = await apiPost('pedidos', payload);
+
+        // Remove loading
+        btn.classList.remove('btn-loading');
+        btn.innerHTML = originalText;
+
+        showNotification(`Pedido #${res.id} registrado com sucesso!`, 'success');
+
+        cart = [];
+        renderCart();
+        refreshAll();
+      } catch (error) {
+        // Remove loading em caso de erro
+        btn.classList.remove('btn-loading');
+        btn.innerHTML = originalText;
+
+        showNotification('Erro ao registrar pedido. Tente novamente.', 'danger');
+        console.error(error);
+      }
+    }
+
+    document.getElementById('btn-register-order').addEventListener('click', registerOrder);
+
+    // Filtro do cardápio
+    document.getElementById('filter-prod').addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase();
+      document.querySelectorAll('#grid-produtos .card-hover').forEach(card => {
+        const nome = card.querySelector('.font-medium').innerText.toLowerCase();
+        if (nome.includes(query)) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    });
+
+    /* =========================
+     * Renderizadores de Listas - MELHORADOS
+     * ========================= */
+
+    // Renderiza grid de produtos no Caixa
+    async function renderProdutosGrid() {
+      const grid = document.getElementById('grid-produtos');
+      showLoading(grid);
+
+      const produtos = await apiGet('produtos');
+      const categorias = await apiGet('categorias');
+      const catMap = {};
+      categorias.forEach(c => catMap[c.id] = c.nome);
+
+      grid.innerHTML = '';
+
+      if (!produtos.length) {
+        showEmpty(grid, 'fa-box-open', 'Nenhum produto cadastrado');
+        return;
+      }
+
+      // Agrupa produtos por categoria
+      const produtosPorCategoria = {};
+      produtos.forEach(p => {
+        const catId = p.categoria_id;
+        if (!produtosPorCategoria[catId]) {
+          produtosPorCategoria[catId] = {
+            nome: p.categoriaNome || catMap[catId] || 'Sem Categoria',
+            produtos: []
+          };
+        }
+        produtosPorCategoria[catId].produtos.push(p);
+      });
+
+      // Renderiza produtos agrupados por categoria
+      Object.keys(produtosPorCategoria).sort((a, b) => produtosPorCategoria[a].nome.localeCompare(produtosPorCategoria[b].nome)).forEach(catId => {
+        const categoria = produtosPorCategoria[catId];
+
+        const categoriaHeader = document.createElement('div');
+        categoriaHeader.className = 'col-span-1 md:col-span-2 lg:col-span-3 mt-6 mb-3';
+        categoriaHeader.innerHTML = `
+          <h4 class="font-semibold text-gray-700 border-b pb-1">${categoria.nome}</h4>
+        `;
+        grid.appendChild(categoriaHeader);
+
+        categoria.produtos.forEach(p => {
+          const card = document.createElement('div');
+          card.className = 'bg-white p-4 rounded-lg shadow-sm border flex flex-col cursor-pointer card-hover';
+          card.innerHTML = `
+            <div class="flex-1">
+              <div class="font-medium">${p.nome}</div>
+              <div class="text-xs text-gray-500 mt-1">${p.descricao || 'Sem descrição'}</div>
+            </div>
+            <div class="mt-3 flex justify-between items-center">
+              <span class="font-semibold text-navy">R$ ${Number(p.preco).toFixed(2).replace('.', ',')}</span>
+              <button class="add-to-cart px-3 py-1 bg-navy text-white text-xs rounded hover:bg-navy-light transition-colors">
+                <i class="fas fa-plus mr-1"></i> Adicionar
+              </button>
+            </div>
+          `;
+
+          card.querySelector('.add-to-cart').addEventListener('click', (e) => {
+            e.stopPropagation();
+            addToCart({ id: p.id, nome: p.nome, preco: p.preco });
+          });
+
+          card.addEventListener('click', () => addToCart({ id: p.id, nome: p.nome, preco: p.preco }));
+          grid.appendChild(card);
+        });
+      });
+    }
+
+    // Função para atualizar estatísticas do dashboard
+    async function updateDashboardStats() {
+      const funcionarios = await apiGet('funcionarios');
+      const clientes = await apiGet('clientes');
+      const produtos = await apiGet('produtos');
+      const pedidos = await apiGet('pedidos');
+      const mesas = await apiGet('mesas');
+      const ingredientes = await apiGet('ingredientes');
+
+      // Estatísticas básicas
+      document.getElementById('stat-funcionarios').innerText = funcionarios.length;
+      document.getElementById('stat-clientes').innerText = clientes.length;
+      document.getElementById('stat-produtos').innerText = produtos.length;
+
+      // Estatísticas avançadas
+      const hoje = new Date().toDateString();
+      const pedidosHoje = pedidos.filter(p => {
+        const pedidoDate = new Date(p.criadoEm).toDateString();
+        return pedidoDate === hoje;
+      });
+
+      document.getElementById('stat-pedidos-hoje').innerText = pedidosHoje.length;
+
+      const valorHoje = pedidosHoje.reduce((total, pedido) => total + (pedido.total || 0), 0);
+      document.getElementById('stat-valor-hoje').innerText = `R$ ${valorHoje.toFixed(2).replace('.', ',')}`;
+
+      const ingredientesFalta = ingredientes.filter(i => i.quantidade <= (i.quantidade_minima || 5)).length;
+      document.getElementById('stat-ingredientes-falta').innerText = ingredientesFalta;
+      if (ingredientesFalta > 0) {
+        document.getElementById('stat-ingredientes-falta').classList.add('text-red-600');
+        document.getElementById('stat-ingredientes-falta').classList.remove('text-gray-900');
+      } else {
+        document.getElementById('stat-ingredientes-falta').classList.remove('text-red-600');
+        document.getElementById('stat-ingredientes-falta').classList.add('text-gray-900');
+      }
+
+      const mesasOcupadas = mesas.filter(m => m.status === 'Ocupada').length;
+      document.getElementById('stat-mesas-ocupadas').innerText = `${mesasOcupadas}/${mesas.length}`;
+
+      // Atualiza último update
+      document.getElementById('last-update').innerText = `Última atualização: ${new Date().toLocaleTimeString()}`;
+    }
+
+    // Função para popular selects
+    async function populateSelects() {
+      const funcionarios = await apiGet('funcionarios');
+      const clientes = await apiGet('clientes');
+      const mesas = await apiGet('mesas');
+      const categorias = await apiGet('categorias');
+      const fornecedores = await apiGet('fornecedores');
+      const produtos = await apiGet('produtos');
+      const ingredientes = await apiGet('ingredientes');
+      const cargos = await apiGet('cargos');
+
+      // Helper function para popular selects
+      const populate = (selId, items, valKey = 'id', labelKey = 'nome', addEmpty = false, emptyText = '-- Selecione --') => {
+        const sel = document.getElementById(selId);
+        if (!sel) return;
+        sel.innerHTML = addEmpty ? `<option value="">${emptyText}</option>` : '';
+        items.forEach(it => {
+          const o = document.createElement('option');
+          o.value = it[valKey];
+          o.text = (typeof labelKey === 'function') ? labelKey(it) : (it[labelKey] || '');
+          sel.appendChild(o);
+        });
+      };
+
+      populate('sel-funcionario', funcionarios, 'id', 'nome');
+      populate('sel-cliente', clientes, 'id', 'nome', true, '-- Selecione um cliente --');
+      populate('sel-mesa', mesas.filter(m => m.status === 'Livre'), 'id', m => `Mesa ${m.numero}`, true, '-- Selecione uma mesa --');
+      populate('prod-categoria', categorias, 'id', 'nome', true, '-- Categoria --');
+      populate('ficha-produto', produtos, 'id', 'nome');
+      populate('ficha-ingrediente', ingredientes, 'id', 'nome');
+      populate('ing-fornecedor', fornecedores, 'id', 'nome', true, '-- Selecione um fornecedor --');
+      populate('func-cargo', cargos, 'id', 'nome', true, '-- Selecione um cargo --');
+    }
+
+    // Renderiza lista de produtos na tela de Produtos
+    async function renderListaProdutos() {
+      const container = document.getElementById('lista-produtos');
+      showLoading(container);
+
+      const produtos = await apiGet('produtos');
+      const categorias = await apiGet('categorias');
+      const catMap = {};
+      categorias.forEach(c => catMap[c.id] = c.nome);
+
+      container.innerHTML = '';
+
+      if (!produtos.length) {
+        showEmpty(container, 'fa-box-open', 'Nenhum produto cadastrado');
+        return;
+      }
+
+      produtos.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'p-4 border bg-white rounded-lg card-hover flex justify-between items-center';
+        div.innerHTML = `
+          <div>
+            <div class="font-medium">${p.nome}</div>
+            <div class="text-xs text-gray-500">${p.categoriaNome || catMap[p.categoria_id] || '—'}</div>
+            <div class="text-sm text-gray-600 mt-1">${p.descricao || 'Sem descrição'}</div>
+          </div>
+          <div class="text-right">
+            <div class="font-semibold text-lg text-navy">R$ ${Number(p.preco).toFixed(2).replace('.', ',')}</div>
+            <div class="flex gap-2 mt-2">
+              <button class="edit-prod px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded hover:bg-blue-200 transition-colors" data-id="${p.id}">
+                <i class="fas fa-edit mr-1"></i> Editar
+              </button>
+              <button class="delete-prod px-3 py-1 bg-red-100 text-red-700 text-xs rounded hover:bg-red-200 transition-colors" data-id="${p.id}">
+                <i class="fas fa-trash mr-1"></i> Excluir
+              </button>
+            </div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      // Adiciona eventos para editar e excluir
+      container.querySelectorAll('.edit-prod').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const id = Number(e.target.closest('button').dataset.id);
+          const produtos = await apiGet('produtos');
+          const produto = produtos.find(p => p.id === id);
+
+          if (produto) {
+            document.getElementById('prod-id').value = produto.id;
+            document.getElementById('prod-nome').value = produto.nome;
+            document.getElementById('prod-descricao').value = produto.descricao || '';
+            document.getElementById('prod-preco').value = produto.preco;
+            document.getElementById('prod-categoria').value = produto.categoria_id;
+
+            showNotification(`Editando produto: ${produto.nome}`, 'info');
+            // Scroll para o formulário
+            document.getElementById('form-create-prod').scrollIntoView({ behavior: 'smooth' });
+          }
+        });
+      });
+
+      container.querySelectorAll('.delete-prod').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const id = Number(e.target.closest('button').dataset.id);
+          const produtos = await apiGet('produtos');
+          const produto = produtos.find(p => p.id === id);
+
+          if (produto && await confirmAction(
+            'Excluir Produto',
+            `Tem certeza que deseja excluir o produto "${produto.nome}"? Esta ação não pode ser desfeita.`
+          )) {
+            await apiDelete('produtos', id);
+            showNotification(`Produto "${produto.nome}" excluído com sucesso`, 'success');
+            await refreshAll();
+          }
+        });
+      });
+    }
+
+    // Formulário de produto
+    document.getElementById('form-create-prod').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const id = document.getElementById('prod-id').value;
+      const nome = document.getElementById('prod-nome').value.trim();
+      const descricao = document.getElementById('prod-descricao').value.trim();
+      const preco = Number(document.getElementById('prod-preco').value) || 0;
+      const categoriaId = Number(document.getElementById('prod-categoria').value) || null;
+
+      if (!nome || !preco) {
+        showNotification('Nome e Preço são obrigatórios (RF008).', 'warning');
+        return;
+      }
+
+      const categorias = await apiGet('categorias');
+      const cat = categorias.find(c => c.id === categoriaId);
+      const categoriaNome = cat ? cat.nome : null;
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      const originalText = btn.innerHTML;
+
+      btn.classList.add('btn-loading');
+      btn.innerHTML = '<div class="spinner"></div> Salvando...';
+
+      try {
+        const payload = {
+          nome,
+          descricao,
+          preco,
+          categoria_id: categoriaId,
+          categoriaNome: categoriaNome
+        };
+
+        if (id) {
+          // Editar produto existente
+          await apiPut('produtos', Number(id), payload);
+          showNotification(`Produto "${nome}" atualizado com sucesso!`, 'success');
+        } else {
+          // Criar novo produto
+          await apiPost('produtos', payload);
+          showNotification(`Produto "${nome}" criado com sucesso!`, 'success');
+        }
+
+        // Limpar formulário
+        e.target.reset();
+        document.getElementById('prod-id').value = '';
+
+        // Atualizar listas
+        await refreshAll();
+
+      } catch (error) {
+        showNotification('Erro ao salvar produto. Tente novamente.', 'danger');
+        console.error(error);
+      } finally {
+        btn.classList.remove('btn-loading');
+        btn.innerHTML = originalText;
+      }
+    });
+
+    // Botão cancelar edição de produto
+    document.getElementById('btn-cancel-prod').addEventListener('click', () => {
+      document.getElementById('form-create-prod').reset();
+      document.getElementById('prod-id').value = '';
+      showNotification('Edição cancelada', 'info', 2000);
+    });
+
+    // Botão novo produto
+    document.getElementById('btn-open-create-prod').addEventListener('click', () => {
+      document.getElementById('form-create-prod').reset();
+      document.getElementById('prod-id').value = '';
+      document.getElementById('form-create-prod').scrollIntoView({ behavior: 'smooth' });
+      document.getElementById('prod-nome').focus();
+    });
+
+
+    /* =========================
+     * Lógica de Fichas Técnicas (RF009)
+     * ========================= */
+
+    async function renderListaFichas() {
+      const container = document.getElementById('lista-fichas');
+      showLoading(container);
+
+      const fichas = await apiGet('fichas');
+
+      container.innerHTML = '';
+
+      if (!fichas.length) {
+        showEmpty(container, 'fa-file-alt', 'Nenhuma ficha técnica cadastrada');
+        return;
+      }
+
+      fichas.forEach(f => {
+        const div = document.createElement('div');
+        div.className = 'p-4 border bg-white rounded-lg';
+
+        const ingredientesHTML = f.ingredientes.map(ing => `
+                <li class="flex justify-between items-center text-sm p-2 bg-gray-50 rounded">
+                    <span>${ing.nome}</span>
+                    <span class="font-medium">${ing.quantidade} ${ing.unidade}</span>
+                    <button data-ficha-id="${f.id}" data-ing-id="${ing.ingredienteId}" class="remove-ficha-item px-2 py-1 bg-red-100 text-red-700 text-xs rounded hover:bg-red-200">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </li>
+            `).join('');
+
+        div.innerHTML = `
+                <h4 class="font-semibold text-lg">${f.produtoNome} (ID: ${f.produto_id})</h4>
+                <ul class="space-y-2 mt-2">
+                    ${ingredientesHTML || '<li class="text-sm text-gray-500">Nenhum ingrediente.</li>'}
+                </ul>
+            `;
+        container.appendChild(div);
+      });
+
+      // Adiciona eventos de remoção
+      container.querySelectorAll('.remove-ficha-item').forEach(btn => {
+        btn.addEventListener('click', async e => {
+          const btnEl = e.target.closest('button');
+          const fichaId = Number(btnEl.dataset.fichaId);
+          const ingredienteId = Number(btnEl.dataset.ingId);
+
+          if (await confirmAction('Remover Ingrediente', 'Tem certeza que deseja remover este ingrediente da ficha?')) {
+            const fichas = await apiGet('fichas');
+            const ficha = fichas.find(f => f.id === fichaId);
+
+            if (ficha) {
+              ficha.ingredientes = ficha.ingredientes.filter(ing => ing.ingredienteId !== ingredienteId);
+              await apiPut('fichas', fichaId, ficha);
+              showNotification('Ingrediente removido da ficha', 'success');
+              await renderListaFichas();
+            }
+          }
+        });
+      });
+    }
+
+    document.getElementById('btn-add-ficha-item').addEventListener('click', async (e) => {
+      const produtoId = Number(document.getElementById('ficha-produto').value);
+      const ingredienteId = Number(document.getElementById('ficha-ingrediente').value);
+      const quantidade = Number(document.getElementById('ficha-qt').value);
+
+      if (!produtoId || !ingredienteId || !quantidade || quantidade <= 0) {
+        showNotification('Selecione Produto, Ingrediente e uma Quantidade válida (RF009)', 'warning');
+        return;
+      }
+
+      const btn = e.target;
+      btn.classList.add('btn-loading');
+      btn.innerHTML = '<div class="spinner"></div>';
+
+      const produtos = await apiGet('produtos');
+      const ingredientes = await apiGet('ingredientes');
+      const fichas = await apiGet('fichas');
+
+      const produto = produtos.find(p => p.id === produtoId);
+      const ingrediente = ingredientes.find(i => i.id === ingredienteId);
+
+      let ficha = fichas.find(f => f.produto_id === produtoId);
+
+      const ingredientePayload = {
+        ingredienteId: ingrediente.id,
+        nome: ingrediente.nome,
+        quantidade: quantidade,
+        unidade: ingrediente.unidade
+      };
+
+      try {
+        if (ficha) {
+          // Atualiza ficha existente
+          const ingIndex = ficha.ingredientes.findIndex(i => i.ingredienteId === ingredienteId);
+          if (ingIndex !== -1) {
+            // Atualiza quantidade
+            ficha.ingredientes[ingIndex] = ingredientePayload;
+          } else {
+            // Adiciona novo
+            ficha.ingredientes.push(ingredientePayload);
+          }
+          await apiPut('fichas', ficha.id, ficha);
+        } else {
+          // Cria nova ficha
+          const newFicha = {
+            produto_id: produto.id,
+            produtoNome: produto.nome,
+            ingredientes: [ingredientePayload]
+          };
+          await apiPost('fichas', newFicha);
+        }
+
+        showNotification('Ingrediente adicionado à ficha com sucesso!', 'success');
+        document.getElementById('ficha-qt').value = '';
+        await renderListaFichas();
+
+      } catch (error) {
+        showNotification('Erro ao salvar ficha', 'danger');
+        console.error(error);
+      } finally {
+        btn.classList.remove('btn-loading');
+        btn.innerHTML = '<i class="fas fa-plus mr-2"></i> Adicionar';
+      }
+    });
+
+    /* =========================
+     * Lógica de Estoque (RF007)
+     * ========================= */
+
+    async function renderListaIngredientes() {
+      const container = document.getElementById('lista-ingredientes');
+      showLoading(container);
+
+      const ingredientes = await apiGet('ingredientes');
+      const fornecedores = await apiGet('fornecedores');
+      const fornMap = {};
+      fornecedores.forEach(f => fornMap[f.id] = f.nome);
+
+      container.innerHTML = '';
+
+      if (!ingredientes.length) {
+        showEmpty(container, 'fa-boxes', 'Nenhum ingrediente no estoque');
+        return;
+      }
+
+      ingredientes.forEach(i => {
+        const div = document.createElement('div');
+        const emFalta = i.quantidade <= i.quantidade_minima;
+        div.className = `p-4 border bg-white rounded-lg card-hover flex justify-between items-center ${emFalta ? 'border-l-4 border-danger' : ''}`;
+        div.innerHTML = `
+              <div>
+                <div class="font-medium">${i.nome} ${emFalta ? '<span class="text-xs text-danger font-bold ml-2">(EM FALTA)</span>' : ''}</div>
+                <div class="text-xs text-gray-500">Fornecedor: ${fornMap[i.fornecedor_id] || 'N/A'}</div>
+                <div class="text-sm text-gray-600 mt-1">Estoque Mínimo: ${i.quantidade_minima || 0} ${i.unidade}</div>
+              </div>
+              <div class="text-right">
+                <div class="font-semibold text-lg text-navy">${i.quantidade} ${i.unidade}</div>
+                <div class="flex gap-2 mt-2">
+                  <button class="edit-ing px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded hover:bg-blue-200 transition-colors" data-id="${i.id}">
+                    <i class="fas fa-edit mr-1"></i> Editar
+                  </button>
+                  <button class="delete-ing px-3 py-1 bg-red-100 text-red-700 text-xs rounded hover:bg-red-200 transition-colors" data-id="${i.id}">
+                    <i class="fas fa-trash mr-1"></i> Excluir
+                  </button>
+                </div>
+              </div>
+            `;
+        container.appendChild(div);
+      });
+
+      // Eventos de editar/excluir
+      container.querySelectorAll('.edit-ing').forEach(btn => {
+        btn.addEventListener('click', async e => {
+          const id = Number(e.target.closest('button').dataset.id);
+          const item = (await apiGet('ingredientes')).find(i => i.id === id);
+          if (item) {
+            document.getElementById('form-ing-title').innerText = 'Editar Ingrediente';
+            document.getElementById('ing-id').value = item.id;
+            document.getElementById('ing-nome').value = item.nome;
+            document.getElementById('ing-quant').value = item.quantidade;
+            document.getElementById('ing-unidade').value = item.unidade;
+            document.getElementById('ing-quant-min').value = item.quantidade_minima;
+            document.getElementById('ing-fornecedor').value = item.fornecedor_id;
+            document.getElementById('form-create-ingrediente').scrollIntoView({ behavior: 'smooth' });
+          }
+        });
+      });
+
+      container.querySelectorAll('.delete-ing').forEach(btn => {
+        btn.addEventListener('click', async e => {
+          const id = Number(e.target.closest('button').dataset.id);
+          const item = (await apiGet('ingredientes')).find(i => i.id === id);
+          if (item && await confirmAction('Excluir Ingrediente', `Tem certeza que deseja excluir "${item.nome}"?`)) {
+            await apiDelete('ingredientes', id);
+            showNotification('Ingrediente excluído', 'success');
+            await refreshAll();
+          }
+        });
+      });
+    }
+
+    document.getElementById('form-create-ingrediente').addEventListener('submit', async e => {
+      e.preventDefault();
+      const id = document.getElementById('ing-id').value;
+      const payload = {
+        nome: document.getElementById('ing-nome').value.trim(),
+        quantidade: Number(document.getElementById('ing-quant').value),
+        unidade: document.getElementById('ing-unidade').value.trim(),
+        quantidade_minima: Number(document.getElementById('ing-quant-min').value),
+        fornecedor_id: Number(document.getElementById('ing-fornecedor').value) || null
+      };
+
+      if (!payload.nome || !payload.unidade) {
+        showNotification('Nome e Unidade são obrigatórios', 'warning');
+        return;
+      }
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.classList.add('btn-loading');
+      btn.innerHTML = '<div class="spinner"></div> Salvando...';
+
+      try {
+        if (id) {
+          await apiPut('ingredientes', Number(id), payload);
+          showNotification('Ingrediente atualizado', 'success');
+        } else {
+          await apiPost('ingredientes', payload);
+          showNotification('Ingrediente salvo', 'success');
+        }
+        e.target.reset();
+        document.getElementById('ing-id').value = '';
+        document.getElementById('form-ing-title').innerText = 'Novo Ingrediente';
+        await refreshAll();
+      } catch (error) {
+        showNotification('Erro ao salvar', 'danger');
+      } finally {
+        btn.classList.remove('btn-loading');
+        btn.innerHTML = '<i class="fas fa-save mr-2"></i> Salvar';
+      }
+    });
+
+    document.getElementById('btn-cancel-ing').addEventListener('click', () => {
+      document.getElementById('form-create-ingrediente').reset();
+      document.getElementById('ing-id').value = '';
+      document.getElementById('form-ing-title').innerText = 'Novo Ingrediente';
+    });
+
+
+    /* =========================
+     * Lógica de Cadastros (Genérica)
+     * ========================= */
+
+    // Função genérica de renderização de lista para cadastros simples
+    async function renderSimpleList(resource, containerId, title, fields) {
+      const container = document.getElementById(containerId);
+      showLoading(container);
+
+      const items = await apiGet(resource);
+      container.innerHTML = '';
+
+      if (!items.length) {
+        showEmpty(container, 'fa-folder-open', `Nenhum(a) ${title} cadastrado(a)`);
+        return;
+      }
+
+      items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'p-4 border bg-white rounded-lg card-hover flex justify-between items-center';
+
+        const fieldsHTML = fields.map(f => `<div class="${f.class}">${f.label ? f.label + ': ' : ''}${item[f.key] || 'N/A'}</div>`).join('');
+
+        div.innerHTML = `
+              <div>${fieldsHTML}</div>
+              <div class="flex gap-2">
+                  <button class="edit-item px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded hover:bg-blue-200" data-id="${item.id}">
+                    <i class="fas fa-edit mr-1"></i> Editar
+                  </button>
+                  <button class="delete-item px-3 py-1 bg-red-100 text-red-700 text-xs rounded hover:bg-red-200" data-id="${item.id}">
+                    <i class="fas fa-trash mr-1"></i> Excluir
+                  </button>
+              </div>
+            `;
+        container.appendChild(div);
+      });
+
+      // Eventos
+      container.querySelectorAll('.edit-item').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const id = Number(e.target.closest('button').dataset.id);
+          const item = items.find(i => i.id === id);
+          window.editItem(resource, item); // Chama função global de edição
+        });
+      });
+
+      container.querySelectorAll('.delete-item').forEach(btn => {
+        btn.addEventListener('click', async e => {
+          const id = Number(e.target.closest('button').dataset.id);
+          const item = items.find(i => i.id === id);
+          if (item && await confirmAction(`Excluir ${title}`, `Tem certeza que deseja excluir "${item.nome || item.numero}"?`)) {
+            await apiDelete(resource, id);
+            showNotification(`${title} excluído(a)`, 'success');
+            await refreshAll();
+          }
+        });
+      });
+    }
+
+    // Função global para popular formulários de edição
+    window.editItem = (resource, item) => {
+      if (resource === 'cargos') {
+        document.getElementById('form-cargo-title').innerText = 'Editar Cargo';
+        document.getElementById('cargo-id').value = item.id;
+        document.getElementById('cargo-nome').value = item.nome;
+        document.getElementById('cargo-salario').value = item.salario_base;
+      }
+      if (resource === 'mesas') {
+        document.getElementById('form-mesa-title').innerText = 'Editar Mesa';
+        document.getElementById('mesa-id').value = item.id;
+        document.getElementById('mesa-numero').value = item.numero;
+        document.getElementById('mesa-status').value = item.status;
+      }
+      if (resource === 'fornecedores') {
+        document.getElementById('form-forn-title').innerText = 'Editar Fornecedor';
+        document.getElementById('forn-id').value = item.id;
+        document.getElementById('forn-nome').value = item.nome;
+        document.getElementById('forn-cnpj').value = item.cnpj;
+      }
+      if (resource === 'categorias') {
+        document.getElementById('form-cat-title').innerText = 'Editar Categoria';
+        document.getElementById('cat-id').value = item.id;
+        document.getElementById('cat-nome').value = item.nome;
+      }
+    };
+
+    // Função genérica de submit para cadastros simples
+    async function handleSimpleSubmit(e, resource, formId, idField, payloadMap, title) {
+      e.preventDefault();
+      const id = document.getElementById(idField).value;
+      const payload = payloadMap();
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.classList.add('btn-loading');
+      btn.innerHTML = '<div class="spinner"></div> Salvando...';
+
+      try {
+        if (id) {
+          await apiPut(resource, Number(id), payload);
+          showNotification(`${title} atualizado(a)`, 'success');
+        } else {
+          await apiPost(resource, payload);
+          showNotification(`${title} salvo(a)`, 'success');
+        }
+        e.target.reset();
+        document.getElementById(idField).value = '';
+        await refreshAll(); // Atualiza tudo, inclusive selects
+      } catch (error) {
+        showNotification('Erro ao salvar', 'danger');
+      } finally {
+        btn.classList.remove('btn-loading');
+        btn.innerHTML = '<i class="fas fa-save mr-2"></i> Salvar';
+        // Reseta o título do formulário
+        const titleEl = document.getElementById(formId).previousElementSibling;
+        if (titleEl) titleEl.innerText = `Novo ${title}`;
+      }
+    }
+
+    // -- Cargos (RF002) --
+    async function renderListaCargos() {
+      await renderSimpleList('cargos', 'lista-cargos', 'Cargo', [
+        { key: 'nome', class: 'font-medium' },
+        { key: 'salario_base', class: 'text-sm text-gray-600', label: 'Salário' }
+      ]);
+    }
+    document.getElementById('form-create-cargo').addEventListener('submit', e => handleSimpleSubmit(e, 'cargos', 'form-create-cargo', 'cargo-id', () => ({
+      nome: document.getElementById('cargo-nome').value,
+      salario_base: Number(document.getElementById('cargo-salario').value)
+    }), 'Cargo'));
+    document.getElementById('btn-cancel-cargo').addEventListener('click', () => {
+      document.getElementById('form-create-cargo').reset();
+      document.getElementById('cargo-id').value = '';
+      document.getElementById('form-cargo-title').innerText = 'Novo Cargo';
+    });
+
+    // -- Mesas (RF004) --
+    async function renderListaMesas() {
+      await renderSimpleList('mesas', 'lista-mesas', 'Mesa', [
+        { key: 'numero', class: 'font-medium', label: 'Mesa' },
+        { key: 'status', class: 'text-sm text-gray-600', label: 'Status' }
+      ]);
+    }
+    document.getElementById('form-create-mesa').addEventListener('submit', e => handleSimpleSubmit(e, 'mesas', 'form-create-mesa', 'mesa-id', () => ({
+      numero: Number(document.getElementById('mesa-numero').value),
+      status: document.getElementById('mesa-status').value
+    }), 'Mesa'));
+    document.getElementById('btn-cancel-mesa').addEventListener('click', () => {
+      document.getElementById('form-create-mesa').reset();
+      document.getElementById('mesa-id').value = '';
+      document.getElementById('form-mesa-title').innerText = 'Nova Mesa';
+    });
+
+    // -- Fornecedores (RF006) --
+    async function renderListaFornecedores() {
+      await renderSimpleList('fornecedores', 'lista-fornecedores', 'Fornecedor', [
+        { key: 'nome', class: 'font-medium' },
+        { key: 'cnpj', class: 'text-sm text-gray-600', label: 'CNPJ' }
+      ]);
+    }
+    document.getElementById('form-create-fornecedor').addEventListener('submit', e => handleSimpleSubmit(e, 'fornecedores', 'form-create-fornecedor', 'forn-id', () => ({
+      nome: document.getElementById('forn-nome').value,
+      cnpj: document.getElementById('forn-cnpj').value
+    }), 'Fornecedor'));
+    document.getElementById('btn-cancel-forn').addEventListener('click', () => {
+      document.getElementById('form-create-fornecedor').reset();
+      document.getElementById('forn-id').value = '';
+      document.getElementById('form-forn-title').innerText = 'Novo Fornecedor';
+    });
+
+    // -- Categorias (RF005) --
+    async function renderListaCategorias() {
+      await renderSimpleList('categorias', 'lista-categorias', 'Categoria', [
+        { key: 'nome', class: 'font-medium' }
+      ]);
+    }
+    document.getElementById('form-create-categoria').addEventListener('submit', e => handleSimpleSubmit(e, 'categorias', 'form-create-categoria', 'cat-id', () => ({
+      nome: document.getElementById('cat-nome').value
+    }), 'Categoria'));
+    document.getElementById('btn-cancel-cat').addEventListener('click', () => {
+      document.getElementById('form-create-categoria').reset();
+      document.getElementById('cat-id').value = '';
+      document.getElementById('form-cat-title').innerText = 'Nova Categoria';
+    });
+
+    // -- Funcionários (RF001) --
+    async function renderListaFuncionarios() {
+      const container = document.getElementById('lista-funcionarios');
+      showLoading(container);
+
+      const funcionarios = await apiGet('funcionarios');
+      const cargos = await apiGet('cargos');
+      const cargoMap = {};
+      cargos.forEach(c => cargoMap[c.id] = c.nome);
+
+      container.innerHTML = '';
+
+      if (!funcionarios.length) {
+        showEmpty(container, 'fa-users', 'Nenhum funcionário cadastrado');
+        return;
+      }
+
+      funcionarios.forEach(f => {
+        const div = document.createElement('div');
+        div.className = 'p-4 border bg-white rounded-lg card-hover flex justify-between items-center';
+        div.innerHTML = `
+              <div>
+                <div class="font-medium">${f.nome}</div>
+                <div class="text-xs text-gray-500">${cargoMap[f.id_cargo] || 'Sem cargo'}</div>
+                <div class="text-sm text-gray-600 mt-1">CPF: ${f.cpf}</div>
+              </div>
+              <div class="flex gap-2">
+                  <button class="edit-func px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded hover:bg-blue-200" data-id="${f.id}">
+                    <i class="fas fa-edit mr-1"></i> Editar
+                  </button>
+                  <button class="delete-func px-3 py-1 bg-red-100 text-red-700 text-xs rounded hover:bg-red-200" data-id="${f.id}">
+                    <i class="fas fa-trash mr-1"></i> Excluir
+                  </button>
+              </div>
+            `;
+        container.appendChild(div);
+      });
+
+      // Eventos
+      container.querySelectorAll('.edit-func').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const id = Number(e.target.closest('button').dataset.id);
+          const item = funcionarios.find(i => i.id === id);
+          if (item) {
+            document.getElementById('form-func-title').innerText = 'Editar Funcionário';
+            document.getElementById('func-id').value = item.id;
+            document.getElementById('func-nome').value = item.nome;
+            document.getElementById('func-cpf').value = item.cpf;
+            document.getElementById('func-cargo').value = item.id_cargo;
+          }
+        });
+      });
+
+      container.querySelectorAll('.delete-func').forEach(btn => {
+        btn.addEventListener('click', async e => {
+          const id = Number(e.target.closest('button').dataset.id);
+          const item = funcionarios.find(i => i.id === id);
+          if (item && await confirmAction('Excluir Funcionário', `Tem certeza que deseja excluir "${item.nome}"?`)) {
+            await apiDelete('funcionarios', id);
+            showNotification('Funcionário excluído', 'success');
+            await refreshAll();
+          }
+        });
+      });
+    }
+    document.getElementById('form-create-func').addEventListener('submit', e => handleSimpleSubmit(e, 'funcionarios', 'form-create-func', 'func-id', () => ({
+      nome: document.getElementById('func-nome').value,
+      cpf: document.getElementById('func-cpf').value,
+      id_cargo: Number(document.getElementById('func-cargo').value)
+    }), 'Funcionário'));
+    document.getElementById('btn-cancel-func').addEventListener('click', () => {
+      document.getElementById('form-create-func').reset();
+      document.getElementById('func-id').value = '';
+      document.getElementById('form-func-title').innerText = 'Novo Funcionário';
+    });
+
+    // -- Clientes (RF003) --
+    async function renderListaClientes() {
+      const container = document.getElementById('lista-clientes');
+      showLoading(container);
+
+      const clientes = await apiGet('clientes');
+      container.innerHTML = '';
+
+      if (!clientes.length) {
+        showEmpty(container, 'fa-user-friends', 'Nenhum cliente cadastrado');
+        return;
+      }
+
+      clientes.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'p-4 border bg-white rounded-lg card-hover flex justify-between items-center';
+        div.innerHTML = `
+              <div>
+                <div class="font-medium">${c.nome}</div>
+                <div class="text-xs text-gray-500">${c.telefone || 'N/A'}</div>
+                <div class="text-sm text-gray-600 mt-1">${c.endereco || 'N/A'}</div>
+              </div>
+              <div class="flex gap-2">
+                  <button class="edit-cli px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded hover:bg-blue-200" data-id="${c.id}">
+                    <i class="fas fa-edit mr-1"></i> Editar
+                  </button>
+                  <button class="delete-cli px-3 py-1 bg-red-100 text-red-700 text-xs rounded hover:bg-red-200" data-id="${c.id}">
+                    <i class="fas fa-trash mr-1"></i> Excluir
+                  </button>
+              </div>
+            `;
+        container.appendChild(div);
+      });
+
+      // Eventos
+      container.querySelectorAll('.edit-cli').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const id = Number(e.target.closest('button').dataset.id);
+          const item = clientes.find(i => i.id === id);
+          if (item) {
+            document.getElementById('form-cli-title').innerText = 'Editar Cliente';
+            document.getElementById('cli-id').value = item.id;
+            document.getElementById('cli-nome').value = item.nome;
+            document.getElementById('cli-tel').value = item.telefone;
+            document.getElementById('cli-end').value = item.endereco;
+          }
+        });
+      });
+
+      container.querySelectorAll('.delete-cli').forEach(btn => {
+        btn.addEventListener('click', async e => {
+          const id = Number(e.target.closest('button').dataset.id);
+          const item = clientes.find(i => i.id === id);
+          if (item && item.id === 1) { // Proteção para não excluir o "Cliente Balcão"
+            showNotification('Não é possível excluir o "Cliente Balcão".', 'warning');
+            return;
+          }
+          if (item && await confirmAction('Excluir Cliente', `Tem certeza que deseja excluir "${item.nome}"?`)) {
+            await apiDelete('clientes', id);
+            showNotification('Cliente excluído', 'success');
+            await refreshAll();
+          }
+        });
+      });
+    }
+    document.getElementById('form-create-cliente').addEventListener('submit', e => handleSimpleSubmit(e, 'clientes', 'form-create-cliente', 'cli-id', () => ({
+      nome: document.getElementById('cli-nome').value,
+      telefone: document.getElementById('cli-tel').value,
+      endereco: document.getElementById('cli-end').value
+    }), 'Cliente'));
+    document.getElementById('btn-cancel-cli').addEventListener('click', () => {
+      document.getElementById('form-create-cliente').reset();
+      document.getElementById('cli-id').value = '';
+      document.getElementById('form-cli-title').innerText = 'Novo Cliente';
+    });
+
+
+    /* =========================
+     * Lógica de Relatórios (RF012-014)
+     * ========================= */
+
+    const relatorioArea = document.getElementById('relatorio-area');
+
+    document.getElementById('btn-report-clientes').addEventListener('click', async () => {
+      showLoading(relatorioArea);
+      const pedidos = await apiGet('pedidos');
+      const clientes = await apiGet('clientes');
+      const cliMap = {};
+      clientes.forEach(c => cliMap[c.id] = c.nome);
+
+      const pedidosPorCliente = {};
+      pedidos.forEach(p => {
+        const cliId = p.clienteId || 1; // 1 = Cliente Balcão
+        if (!pedidosPorCliente[cliId]) {
+          pedidosPorCliente[cliId] = { nome: cliMap[cliId] || 'Cliente Desconhecido', total: 0, count: 0 };
+        }
+        pedidosPorCliente[cliId].total += p.total;
+        pedidosPorCliente[cliId].count++;
+      });
+
+      let html = '<h4 class="font-semibold text-lg mb-3">Relatório de Pedidos por Cliente (RF012)</h4>';
+      html += '<ul class="space-y-2">';
+      for (const id in pedidosPorCliente) {
+        const cli = pedidosPorCliente[id];
+        html += `<li class="p-3 bg-gray-50 border rounded-lg">
+                <div class="font-medium">${cli.nome}</div>
+                <div class="text-sm">Total Gasto: <span class="font-semibold text-green-600">R$ ${cli.total.toFixed(2)}</span></div>
+                <div class="text-sm">Total de Pedidos: <span class="font-semibold">${cli.count}</span></div>
+            </li>`;
+      }
+      html += '</ul>';
+      relatorioArea.innerHTML = html;
+    });
+
+    document.getElementById('btn-report-produtos').addEventListener('click', async () => {
+      showLoading(relatorioArea);
+      const fichas = await apiGet('fichas');
+
+      let html = '<h4 class="font-semibold text-lg mb-3">Relatório de Ingredientes por Produto (RF013)</h4>';
+      html += '<ul class="space-y-4">';
+      fichas.forEach(f => {
+        html += `<li class="p-3 bg-gray-50 border rounded-lg">
+                <div class="font-medium">${f.produtoNome}</div>
+                <ul class="list-disc list-inside mt-2 text-sm space-y-1">
+                    ${f.ingredientes.map(i => `<li>${i.nome}: ${i.quantidade} ${i.unidade}</li>`).join('')}
+                </ul>
+            </li>`;
+      });
+      html += '</ul>';
+      relatorioArea.innerHTML = html;
+    });
+
+    document.getElementById('btn-report-funcionarios').addEventListener('click', async () => {
+      showLoading(relatorioArea);
+      const funcionarios = await apiGet('funcionarios');
+      const cargos = await apiGet('cargos');
+      const cargoMap = {};
+      cargos.forEach(c => cargoMap[c.id] = c.nome);
+
+      let html = '<h4 class="font-semibold text-lg mb-3">Relatório de Lista de Funcionários (RF014)</h4>';
+      html += '<ul class="space-y-2">';
+      funcionarios.forEach(f => {
+        html += `<li class="p-3 bg-gray-50 border rounded-lg">
+                <div class="font-medium">${f.nome}</div>
+                <div class="text-sm">CPF: ${f.cpf}</div>
+                <div class="text-sm">Cargo: <span class="font-semibold">${cargoMap[f.id_cargo] || 'N/A'}</span></div>
+            </li>`;
+      });
+      html += '</ul>';
+      relatorioArea.innerHTML = html;
+    });
+
+
+    /* ============================
+     * Inicialização
+     * ============================ */
+    async function refreshAll() {
+      // O await é importante para garantir que os dados estejam prontos antes de renderizar
+      await populateSelects();
+
+      // Dashboard
+      await updateDashboardStats();
+
+      // Caixa
+      await renderProdutosGrid();
+
+      // Produtos
+      await renderListaProdutos();
+      await renderListaFichas();
+
+      // Estoque
+      await renderListaIngredientes();
+
+      // Cadastros
+      await renderListaFuncionarios();
+      await renderListaClientes();
+      await renderListaCargos();
+      await renderListaMesas();
+      await renderListaFornecedores();
+      await renderListaCategorias();
+
+      // Atualiza últimos pedidos no dashboard
+      const ult = lsGet(LS_KEYS.pedidos);
+      const up = document.getElementById('ultimos-pedidos');
+      up.innerHTML = '';
+
+      if (!ult.length) {
+        showEmpty(up, 'fa-shopping-cart', 'Nenhum pedido registrado ainda.');
+      } else {
+        ult.slice(0, 5).forEach(p => {
+          const d = document.createElement('div');
+          d.className = 'p-3 border-b border-gray-100 hover:bg-gray-50 rounded transition-colors';
+
+          d.innerHTML = `
+            <div class="flex justify-between items-start">
+              <div>
+                <div class="text-sm font-medium">Pedido #${p.id}</div>
+                <div class="text-xs text-gray-500">${new Date(p.criadoEm || '').toLocaleString()}</div>
+                <div class="text-xs text-gray-600 mt-1">
+                  ${p.itens ? p.itens.map(it => `${it.quantidade}x ${it.nome || 'Produto'}`).join(', ') : '—'}
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="font-semibold text-navy">R$ ${p.total.toFixed(2).replace('.', ',')}</div>
+                <span class="inline-block px-2 py-1 text-xs rounded-full ${p.status === 'finalizado' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                  ${p.status || 'pendente'}
+                </span>
+              </div>
+            </div>
+          `;
+          up.appendChild(d);
+        });
+      }
+    }
+
+    // Inicialização da aplicação
+    (async () => {
+      seedIfEmpty();
+      await refreshAll();
+      showView('dashboard');
+
+      // Mostra mensagem de boas-vindas
+      setTimeout(() => {
+        showNotification('Sistema Lanchonete FAP carregado com sucesso!', 'success');
+      }, 1000);
+    })();
+
+  </script>
+</body>
+
+</html>
